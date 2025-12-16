@@ -1,8 +1,10 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
-package javaapplication5;
+
+package com.mycompany.mavenproject11;
+
+
 import java.util.ArrayList;
 import javax.swing.*;
 import java.awt.*;
