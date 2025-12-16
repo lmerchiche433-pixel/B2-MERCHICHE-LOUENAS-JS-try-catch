@@ -1,16 +1,21 @@
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
-
-package com.mycompany.mavenproject11;
-
-
-import javax.swing.*;
-import javax.swing.border.*;
-import javax.swing.table.*;
-import java.awt.*;
-import java.io.*;
+package javaapplication5;
 import java.util.ArrayList;
+import javax.swing.*;
+import java.awt.*;
+
+
+import java.util.ArrayList;
+
+
+import java.io.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
+
 
 public class Projetcompilation { 
     
@@ -71,7 +76,7 @@ public class Projetcompilation {
         }
     }
     
-    // LEXER - ANALYSE LEXICALE PAR DESCENTE RECURSIVE
+   
     static class Lexer {
         private final String source;
         private final int sourceLength;
@@ -113,16 +118,14 @@ public class Projetcompilation {
             else { col++; }
         }
         
-        // Reconnaissance recursive des espaces
         private void skipWhitespace() {
             char c = currentChar();
             if (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
                 advance();
-                skipWhitespace(); // Appel recursif
+                skipWhitespace();
             }
         }
         
-        // Reconnaissance recursive des commentaires
         private void skipComment() {
             if (currentChar() == '/' && nextChar() == '/') {
                 advance(); advance();
@@ -136,7 +139,7 @@ public class Projetcompilation {
         private void skipLineComment() {
             if (currentChar() != '\n' && currentChar() != '#') {
                 advance();
-                skipLineComment(); // Recursif
+                skipLineComment();
             }
         }
         
@@ -147,7 +150,7 @@ public class Projetcompilation {
                 return;
             }
             advance();
-            skipBlockComment(); // Recursif
+            skipBlockComment();
         }
         
         private TokenType getKeywordType(String word) {
@@ -190,12 +193,11 @@ public class Projetcompilation {
             return TokenType.IDENTIFIER;
         }
         
-        // Reconnaissance recursive d'identificateur
         private String readIdentifierRec(String acc) {
             if (isLetter(currentChar()) || isDigit(currentChar())) {
                 char c = currentChar();
                 advance();
-                return readIdentifierRec(acc + c); // Recursif
+                return readIdentifierRec(acc + c);
             }
             return acc;
         }
@@ -206,12 +208,11 @@ public class Projetcompilation {
             return new Token(getKeywordType(lexeme), lexeme, startLine, startCol);
         }
         
-        // Reconnaissance recursive de nombre
         private String readDigitsRec(String acc) {
             if (isDigit(currentChar())) {
                 char c = currentChar();
                 advance();
-                return readDigitsRec(acc + c); // Recursif
+                return readDigitsRec(acc + c);
             }
             return acc;
         }
@@ -220,14 +221,12 @@ public class Projetcompilation {
             int startLine = line, startCol = col;
             String lexeme = readDigitsRec("");
             
-            // Partie decimale
             if (currentChar() == '.' && isDigit(nextChar())) {
                 lexeme += currentChar();
                 advance();
                 lexeme = lexeme + readDigitsRec("");
             }
             
-            // Erreur: nombre suivi de lettres
             if (isLetter(currentChar())) {
                 String invalid = readIdentifierRec(lexeme);
                 errorHandler.reportLexicalError("Identificateur invalide commencant par un chiffre", 
@@ -238,7 +237,6 @@ public class Projetcompilation {
             return new Token(TokenType.NUMBER, lexeme, startLine, startCol);
         }
         
-        // Reconnaissance recursive de chaine
         private String readStringRec(char quote, String acc, int startLine, int startCol) {
             if (currentChar() == quote) {
                 return acc + currentChar();
@@ -262,7 +260,7 @@ public class Projetcompilation {
             }
             char c = currentChar();
             advance();
-            return readStringRec(quote, acc + c, startLine, startCol); // Recursif
+            return readStringRec(quote, acc + c, startLine, startCol);
         }
         
         private Token readString() {
@@ -275,7 +273,6 @@ public class Projetcompilation {
         }
         
         public Token nextToken() {
-            // Ignorer espaces et commentaires
             while (currentChar() != '#') {
                 skipWhitespace();
                 if (currentChar() == '/' && (nextChar() == '/' || nextChar() == '*')) {
@@ -296,7 +293,6 @@ public class Projetcompilation {
             
             advance();
             
-            // Operateurs
             if (c == '+') {
                 if (currentChar() == '+') { advance(); return new Token(TokenType.PLUSPLUS, "++", startLine, startCol); }
                 if (currentChar() == '=') { advance(); return new Token(TokenType.PLUS_ASSIGN, "+=", startLine, startCol); }
@@ -379,7 +375,6 @@ public class Projetcompilation {
 
 
 
-    // PARSER - ANALYSE SYNTAXIQUE DESCENDANTE RECURSIVE
     static class Parser {
         private Lexer lexer;
         private Token currentToken;
@@ -428,42 +423,74 @@ public class Projetcompilation {
         }
         
         private void parseStatement() {
+            // Ignorer les tokens d'erreur
             if (currentToken.type == TokenType.ERROR) {
                 advance();
                 return;
             }
+            
+            // Declarations de variables
             if (match(TokenType.VAR, TokenType.LET, TokenType.CONST)) {
                 parseVarDeclaration();
                 return;
             }
+            
+            // Declaration de fonction
             if (match(TokenType.FUNCTION)) {
                 parseFunctionDeclaration();
                 return;
             }
+            
+            // Declaration de classe
             if (match(TokenType.CLASS)) {
                 parseClassDeclaration();
                 return;
             }
+            
+            // Try-Catch
             if (match(TokenType.TRY)) {
                 parseTryCatch();
                 return;
             }
+            
+            // Affectation : IDENTIFIER (=|+=|-=|...) Expression ;
             if (match(TokenType.IDENTIFIER)) {
                 String name = currentToken.lexeme;
                 int line = currentToken.line;
                 advance();
+                
+                // Doit etre suivi d'un operateur d'affectation
                 if (match(TokenType.ASSIGN, TokenType.PLUS_ASSIGN, TokenType.MINUS_ASSIGN,
                          TokenType.STAR_ASSIGN, TokenType.SLASH_ASSIGN, TokenType.PERCENT_ASSIGN)) {
                     String op = currentToken.lexeme;
                     advance();
                     errorHandler.addSyntaxMessage("✓ Affectation: " + name + " " + op + " <expression> (ligne " + line + ")");
                     parseExpression();
-                    if (match(TokenType.SEMICOLON)) advance();
+                    if (!match(TokenType.SEMICOLON)) {
+                        errorHandler.reportSyntaxError("Point-virgule attendu apres l'affectation", 
+                                                      currentToken.line, currentToken.col, currentToken.lexeme);
+                    } else {
+                        advance();
+                    }
+                    return;
+                } else {
+                    // ERREUR: identificateur seul non valide
+                    errorHandler.reportSyntaxError("Instruction invalide: identificateur seul '" + name + "' sans affectation", 
+                                                  line, currentToken.col, currentToken.lexeme);
+                    skipUntilSemicolon();
                     return;
                 }
-                skipUntilSemicolon();
+            }
+            
+            // Instruction vide (juste un point-virgule)
+            if (match(TokenType.SEMICOLON)) {
+                advance();
                 return;
             }
+            
+            // Instructions non reconnues = ERREUR
+            errorHandler.reportSyntaxError("Instruction invalide ou non reconnue", 
+                                          currentToken.line, currentToken.col, currentToken.lexeme);
             skipUntilSemicolon();
         }
         
@@ -471,36 +498,65 @@ public class Projetcompilation {
             String varType = currentToken.lexeme;
             int line = currentToken.line;
             advance();
+            
             if (!match(TokenType.IDENTIFIER)) {
                 errorHandler.reportSyntaxError("Nom de variable attendu apres " + varType, 
                                               currentToken.line, currentToken.col, currentToken.lexeme);
                 synchronize();
                 return;
             }
+            
             String name = currentToken.lexeme;
             advance();
-            errorHandler.addSyntaxMessage("✓ Declaration de variable: " + varType + " " + name + " (ligne " + line + ")");
-            if (match(TokenType.ASSIGN)) {
+            
+            // CONST doit avoir une initialisation
+            if (varType.equals("const")) {
+                if (!match(TokenType.ASSIGN)) {
+                    errorHandler.reportSyntaxError("const doit etre initialise", 
+                                                  line, currentToken.col, name);
+                    skipUntilSemicolon();
+                    return;
+                }
                 advance();
                 parseExpression();
+                errorHandler.addSyntaxMessage("✓ Declaration de constante: " + varType + " " + name + " = <expression> (ligne " + line + ")");
+            } else {
+                // let et var peuvent ne pas avoir d'initialisation
+                if (match(TokenType.ASSIGN)) {
+                    advance();
+                    parseExpression();
+                    errorHandler.addSyntaxMessage("✓ Declaration de variable: " + varType + " " + name + " = <expression> (ligne " + line + ")");
+                } else {
+                    errorHandler.addSyntaxMessage("✓ Declaration de variable: " + varType + " " + name + " (ligne " + line + ")");
+                }
             }
-            if (match(TokenType.SEMICOLON)) advance();
+            
+            if (!match(TokenType.SEMICOLON)) {
+                errorHandler.reportSyntaxError("Point-virgule attendu apres la declaration", 
+                                              currentToken.line, currentToken.col, currentToken.lexeme);
+            } else {
+                advance();
+            }
         }
         
         private void parseFunctionDeclaration() {
             int line = currentToken.line;
             advance();
+            
             if (!match(TokenType.IDENTIFIER)) {
                 errorHandler.reportSyntaxError("Nom de fonction attendu", currentToken.line, currentToken.col, currentToken.lexeme);
                 synchronize();
                 return;
             }
+            
             String name = currentToken.lexeme;
             advance();
+            
             if (!expect(TokenType.LPAREN)) {
                 synchronize();
                 return;
             }
+            
             int paramCount = 0;
             while (!match(TokenType.RPAREN) && currentToken.type != TokenType.EOF) {
                 if (!match(TokenType.IDENTIFIER)) {
@@ -512,13 +568,17 @@ public class Projetcompilation {
                 advance();
                 if (match(TokenType.COMMA)) advance();
             }
+            
             expect(TokenType.RPAREN);
             errorHandler.addSyntaxMessage("✓ Declaration de fonction: " + name + " (" + paramCount + " parametre(s)) (ligne " + line + ")");
+            
             if (!expect(TokenType.LBRACE)) {
                 synchronize();
                 return;
             }
+            
             parseBlock();
+            
             if (!expect(TokenType.RBRACE)) {
                 while (!match(TokenType.RBRACE) && currentToken.type != TokenType.EOF) advance();
                 if (match(TokenType.RBRACE)) advance();
@@ -528,13 +588,16 @@ public class Projetcompilation {
         private void parseClassDeclaration() {
             int line = currentToken.line;
             advance();
+            
             if (!match(TokenType.IDENTIFIER)) {
                 errorHandler.reportSyntaxError("Nom de classe attendu", currentToken.line, currentToken.col, currentToken.lexeme);
                 synchronize();
                 return;
             }
+            
             String name = currentToken.lexeme;
             advance();
+            
             String extendsInfo = "";
             if (match(TokenType.EXTENDS)) {
                 advance();
@@ -546,16 +609,20 @@ public class Projetcompilation {
                                                   currentToken.line, currentToken.col, currentToken.lexeme);
                 }
             }
+            
             errorHandler.addSyntaxMessage("✓ Declaration de classe: " + name + extendsInfo + " (ligne " + line + ")");
+            
             if (!expect(TokenType.LBRACE)) {
                 synchronize();
                 return;
             }
+            
             while (!match(TokenType.RBRACE) && currentToken.type != TokenType.EOF) {
                 if (match(TokenType.IDENTIFIER)) {
                     String methodName = currentToken.lexeme;
                     int methodLine = currentToken.line;
                     advance();
+                    
                     if (match(TokenType.LPAREN)) {
                         advance();
                         int paramCount = 0;
@@ -571,6 +638,7 @@ public class Projetcompilation {
                         }
                         expect(TokenType.RPAREN);
                         errorHandler.addSyntaxMessage("  ✓ Methode: " + methodName + " (" + paramCount + " parametre(s)) (ligne " + methodLine + ")");
+                        
                         if (!expect(TokenType.LBRACE)) {
                             skipUntilBrace();
                             continue;
@@ -578,6 +646,8 @@ public class Projetcompilation {
                         parseBlock();
                         if (!expect(TokenType.RBRACE)) skipUntilBrace();
                     } else {
+                        errorHandler.reportSyntaxError("Parenthese ouvrante attendue pour la methode", 
+                                                      methodLine, currentToken.col, methodName);
                         skipUntilSemicolon();
                     }
                 } else {
@@ -595,6 +665,7 @@ public class Projetcompilation {
             int line = currentToken.line;
             advance();
             errorHandler.addSyntaxMessage("✓ Bloc try-catch (ligne " + line + ")");
+            
             if (!expect(TokenType.LBRACE)) {
                 synchronize();
                 return;
@@ -604,6 +675,7 @@ public class Projetcompilation {
                 skipUntilBrace();
                 if (match(TokenType.RBRACE)) advance();
             }
+            
             if (match(TokenType.CATCH)) {
                 advance();
                 if (match(TokenType.LPAREN)) {
@@ -696,7 +768,6 @@ public class Projetcompilation {
 
 
 
-    // Interface graphique
     static class CompilerGUI extends JFrame {
         private JTextArea sourceArea;
         private JTextArea tokensArea;
@@ -745,8 +816,6 @@ public class Projetcompilation {
             sourcePanel.add(sourceScroll, BorderLayout.CENTER);
             
             // Tokens
-            
-            
             tokensArea = new JTextArea();
             tokensArea.setFont(new Font("Monospaced", Font.PLAIN, 12));
             tokensArea.setEditable(false);
@@ -949,7 +1018,6 @@ public class Projetcompilation {
             CompilerGUI gui = new CompilerGUI();
             gui.setVisible(true);
         });
-    }
-}
+    } }
 
-// FIN DU FICHIER Projetcompilation.java
+
